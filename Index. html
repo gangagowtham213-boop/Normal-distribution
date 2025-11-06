@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Normal Distribution in Daily Temperatures</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 0;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        header h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 25px;
+            margin-bottom: 30px;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h2 {
+            color: #1a2a6c;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #fdbb2d;
+            padding-bottom: 10px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #1a2a6c;
+        }
+
+        input[type="range"] {
+            width: 100%;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        button {
+            background: #1a2a6c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #fdbb2d;
+            color: #333;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border-left: 4px solid #1a2a6c;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #1a2a6c;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .probability-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .probability-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .probability-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #b21f1f;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .data-table th, .data-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .data-table th {
+            background-color: #1a2a6c;
+            color: white;
+        }
+
+        .data-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: white;
+            margin-top: 40px;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            .chart-container {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Normal Distribution in Daily Temperatures</h1>
+            <p>Explore how daily temperature patterns follow the normal distribution and analyze probabilities of temperature events</p>
+        </header>
+
+        <section class="card">
+            <h2>Temperature Distribution Simulator</h2>
+            <div class="controls">
+                <div class="control-group">
+                    <label for="meanTemp">Mean Temperature (°C)</label>
+                    <input type="range" id="meanTemp" min="0" max="40" value="20" step="0.5">
+                    <input type="number" id="meanTempValue" value="20" min="0" max="40" step="0.5">
+                </div>
+                <div class="control-group">
+                    <label for="stdTemp">Standard Deviation (°C)</label>
+                    <input type="range" id="stdTemp" min="1" max="15" value="5" step="0.5">
+                    <input type="number" id="stdTempValue" value="5" min="1" max="15" step="0.5">
+                </div>
+                <div class="control-group">
+                    <label for="sampleSize">Sample Size (Days)</label>
+                    <input type="number" id="sampleSize" value="365" min="30" max="1000">
+                </div>
+                <div class="control-group">
+                    <button id="generateData">Generate Data</button>
+                    <button id="resetData">Reset</button>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="distributionChart"></canvas>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="meanValue">20.0</div>
+                    <div class="stat-label">Mean Temperature (°C)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stdValue">5.0</div>
+                    <div class="stat-label">Standard Deviation</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="varianceValue">25.0</div>
+                    <div class="stat-label">Variance</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="skewnessValue">0.0</div>
+                    <div class="stat-label">Skewness</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Temperature Probability Calculator</h2>
+            <div class="controls">
+                <div class="control-group">
+                    <label for="minTemp">Minimum Temperature (°C)</label>
+                    <input type="number" id="minTemp" value="15">
+                </div>
+                <div class="control-group">
+                    <label for="maxTemp">Maximum Temperature (°C)</label>
+                    <input type="number" id="maxTemp" value="25">
+                </div>
+                <div class="control-group">
+                    <button id="calculateProbability">Calculate Probability</button>
+                </div>
+            </div>
+
+            <div class="probability-results">
+                <div class="probability-card">
+                    <div class="probability-value" id="probBetween">0.00%</div>
+                    <div class="stat-label">Probability between min and max</div>
+                </div>
+                <div class="probability-card">
+                    <div class="probability-value" id="probBelowMin">0.00%</div>
+                    <div class="stat-label">Probability below minimum</div>
+                </div>
+                <div class="probability-card">
+                    <div class="probability-value" id="probAboveMax">0.00%</div>
+                    <div class="stat-label">Probability above maximum</div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="probabilityChart"></canvas>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Empirical Rule Demonstration</h2>
+            <div class="chart-container">
+                <canvas id="empiricalRuleChart"></canvas>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="empirical68">0%</div>
+                    <div class="stat-label">Within 1σ (68% expected)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="empirical95">0%</div>
+                    <div class="stat-label">Within 2σ (95% expected)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="empirical997">0%</div>
+                    <div class="stat-label">Within 3σ (99.7% expected)</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Sample Temperature Data</h2>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Day</th>
+                            <th>Temperature (°C)</th>
+                            <th>Z-Score</th>
+                            <th>Percentile</th>
+                        </tr>
+                    </thead>
+                    <tbody id="temperatureTable">
+                        <!-- Data will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <p>Normal Distribution in Daily Temperatures - Mini Project &copy; 2023</p>
+    </footer>
+
+    <script>
+        // Global variables
+        let temperatureData = [];
+        let meanTemp = 20;
+        let stdTemp = 5;
+        let sampleSize = 365;
+        let distributionChart, probabilityChart, empiricalRuleChart;
+
+        // DOM elements
+        const meanTempSlider = document.getElementById('meanTemp');
+        const meanTempValue = document.getElementById('meanTempValue');
+        const stdTempSlider = document.getElementById('stdTemp');
+        const stdTempValue = document.getElementById('stdTempValue');
+        const sampleSizeInput = document.getElementById('sampleSize');
+        const generateDataBtn = document.getElementById('generateData');
+        const resetDataBtn = document.getElementById('resetData');
+        const minTempInput = document.getElementById('minTemp');
+        const maxTempInput = document.getElementById('maxTemp');
+        const calculateProbabilityBtn = document.getElementById('calculateProbability');
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEventListeners();
+            generateTemperatureData();
+            updateCharts();
+            updateStatistics();
+            updateTable();
+        });
+
+        // Set up event listeners
+        function initializeEventListeners() {
+            meanTempSlider.addEventListener('input', function() {
+                meanTempValue.value = this.value;
+                meanTemp = parseFloat(this.value);
+                generateTemperatureData();
+                updateCharts();
+                updateStatistics();
+                updateTable();
+            });
+
+            meanTempValue.addEventListener('input', function() {
+                meanTempSlider.value = this.value;
+                meanTemp = parseFloat(this.value);
+                generateTemperatureData();
+                updateCharts();
+                updateStatistics();
+                updateTable();
+            });
+
+            stdTempSlider.addEventListener('input', function() {
+                stdTempValue.value = this.value;
+                stdTemp = parseFloat(this.value);
+                generateTemperatureData();
+                updateCharts();
+                updateStatistics();
+                updateTable();
+            });
+
+            stdTempValue.addEventListener('input', function() {
+                stdTempSlider.value = this.value;
+                stdTemp = parseFloat(this.value);
+                generateTemperatureData();
+                updateCharts();
+                updateStatistics();
+                updateTable();
+            });
+
+            sampleSizeInput.addEventListener('input', function() {
+                sampleSize = parseInt(this.value);
+                generateTemperatureData();
+                updateCharts();
+                updateStatistics();
+                updateTable();
+            });
+
+            generateDataBtn.addEventListener('click', function() {
+                generateTemperatureData();
+                updateCharts();
+                updateStatistics();
+                updateTable();
+            });
+
+            resetDataBtn.addEventListener('click', function() {
+                meanTemp = 20;
+                stdTemp = 5;
+                sampleSize = 365;
+                
+                meanTempSlider.value = meanTemp;
+                meanTempValue.value = meanTemp;
+                stdTempSlider.value = stdTemp;
+                stdTempValue.value = stdTemp;
+                sampleSizeInput.value = sampleSize;
+                
+                generateTemperatureData();
+                updateCharts();
+                updateStatistics();
+                updateTable();
+            });
+
+            calculateProbabilityBtn.addEventListener('click', function() {
+                calculateProbabilities();
+            });
+        }
+
+        // Generate temperature data following normal distribution
+        function generateTemperatureData() {
+            temperatureData = [];
+            for (let i = 0; i < sampleSize; i++) {
+                // Box-Muller transform for normal distribution
+                let u1 = Math.random();
+                let u2 = Math.random();
+                let z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+                let temperature = meanTemp + z0 * stdTemp;
+                temperatureData.push(parseFloat(temperature.toFixed(2)));
+            }
+            // Sort data for better visualization
+            temperatureData.sort((a, b) => a - b);
+        }
+
+        // Calculate normal distribution probability
+        function normalPDF(x, mean, std) {
+            return (1 / (std * Math.sqrt(2 * Math.PI))) * 
+                   Math.exp(-0.5 * Math.pow((x - mean) / std, 2));
+        }
+
+        // Calculate cumulative distribution function (CDF) using approximation
+        function normalCDF(x, mean, std) {
+            // Approximation of the standard normal CDF
+            const z = (x - mean) / std;
+            const t = 1 / (1 + 0.2316419 * Math.abs(z));
+            const d = 0.3989423 * Math.exp(-z * z / 2);
+            let probability = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+            
+            if (z > 0) {
+                return 1 - probability;
+            } else {
+                return probability;
+            }
+        }
+
+        // Update all charts
+        function updateCharts() {
+            updateDistributionChart();
+            updateProbabilityChart();
+            updateEmpiricalRuleChart();
+        }
+
+        // Update the main distribution chart
+        function updateDistributionChart() {
+            const ctx = document.getElementById('distributionChart').getContext('2d');
+            
+            if (distributionChart) {
+                distributionChart.destroy();
+            }
+            
+            // Create histogram data
+            const minTemp = Math.min(...temperatureData);
+            const maxTemp = Math.max(...temperatureData);
+            const binCount = 20;
+            const binSize = (maxTemp - minTemp) / binCount;
+            
+            let histogramData = Array(binCount).fill(0);
+            let binLabels = [];
+            
+            for (let i = 0; i < binCount; i++) {
+                const binStart = minTemp + i * binSize;
+                const binEnd = binStart + binSize;
+                binLabels.push(`${binStart.toFixed(1)}-${binEnd.toFixed(1)}`);
+                
+                histogramData[i] = temperatureData.filter(temp => 
+                    temp >= binStart && temp < binEnd
+                ).length;
+            }
+            
+            // Create normal curve data
+            const normalCurveData = [];
+            const step = (maxTemp - minTemp) / 100;
+            for (let x = minTemp - 5; x <= maxTemp + 5; x += step) {
+                normalCurveData.push({
+                    x: x,
+                    y: normalPDF(x, meanTemp, stdTemp) * sampleSize * binSize
+                });
+            }
+            
+            distributionChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: binLabels,
+                    datasets: [
+                        {
+                            label: 'Temperature Frequency',
+                            data: histogramData,
+                            backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Normal Distribution',
+                            data: normalCurveData,
+                            type: 'line',
+                            backgroundColor: 'rgba(255, 99, 132, 0)',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Frequency'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Temperature (°C)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Daily Temperature Distribution vs Normal Curve',
+                            font: {
+                                size: 16
+                            }
+                        },
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update probability chart
+        function updateProbabilityChart() {
+            const ctx = document.getElementById('probabilit
